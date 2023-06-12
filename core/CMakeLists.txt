@@ -17,4 +17,5 @@ add_roughpy_lib(Core INTERFACE
         include/roughpy/core/alloc.h
     DEFINITIONS
         RPY_DBG_ASSERT_USE_EXCEPTIONS 1
+
         )
