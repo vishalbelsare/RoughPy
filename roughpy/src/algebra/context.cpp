@@ -362,7 +362,7 @@ static PyObject* RPyContext_str(PyObject* self)
     return RPyContext_repr(self);
 }
 
-RPY_UNUSED static PyObject*
+RPY_MAYBE_UNUSED static PyObject*
 RPyContext_new(PyObject* self, PyObject* args, PyObject* kwargs)
 {
     RPY_UNREACHABLE_RETURN(nullptr);
@@ -485,6 +485,9 @@ static py::handle py_get_context(
         const py::kwargs& kwargs
 )
 {
+    RPY_CHECK_GT(width, 0);
+    RPY_CHECK_GT(depth, 0);
+
     // TODO: Make this accept extra arguments.
     return python::RPyContext_FromContext(
             get_context(width, depth, python::to_stype_ptr(ctype), {})

@@ -31,6 +31,10 @@
 #include <cassert>
 #include <sstream>
 
+#include "roughpy/core/check.h"                // for throw_exception, RPY_T...
+#include "roughpy/core/debug_assertion.h"      // for RPY_DBG_ASSERT
+#include "roughpy/core/macros.h"               // for RPY_UNUSED
+
 #include <roughpy/scalars/scalar_types.h>
 #include <roughpy/algebra/context.h>
 
@@ -294,8 +298,8 @@ namespace {
 class ToLieKeyHelper
 {
     using container_type = typename python::PyLieKey::container_type;
-    RPY_UNUSED dimn_t size;
-    RPY_UNUSED dimn_t current;
+    RPY_MAYBE_UNUSED dimn_t size;
+    RPY_MAYBE_UNUSED dimn_t current;
     algebra::LieBasis basis;
     deg_t width;
     let_t max_letter = 0;

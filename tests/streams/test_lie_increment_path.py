@@ -96,36 +96,36 @@ def test_path_creation_odd_data(data):
 def test_from_array_inferred_width_3_2_increments():
     data = np.array([[3, 7, 0], [0, 0, 1]])
     stream = LieIncrementStream.from_increments(data, depth=2,
-                                                coeffs=rp.Rational)
+                                                coeffs=rp.DPReal)
     sig = stream.signature(depth=1)
 
     assert sig.width == 3
     assert sig.max_degree == 1
     expected = rp.FreeTensor(np.array([1, 3, 7, 1]), width=3, depth=1,
-                             dtype=rp.Rational)
+                             dtype=rp.DPReal)
     assert sig == expected, f"{sig} != {expected}"
 
 
 def test_from_array_width_3_2_increments():
     data = np.array([[3, 7, 0], [0, 0, 1]])
     stream = LieIncrementStream.from_increments(data, width=3, depth=2,
-                                                dtype=rp.Rational)
+                                                dtype=rp.DPReal)
     sig = stream.signature(depth=1)
 
     assert sig.width == 3
     assert sig.max_degree == 1
     expected = rp.FreeTensor(np.array([1, 3, 7, 1]), width=3, depth=1,
-                             dtype=rp.Rational)
+                             dtype=rp.DPReal)
     assert sig == expected, f"{sig} != {expected}"
 
 
 def test_from_array_wider_than_depth_2_dim():
     stream = rp.LieIncrementStream.from_increments(
         np.array([[3, 7, 0, 4], [0, 0, 1, 5]]), width=2, depth=2,
-        coeffs=rp.Rational)
+        coeffs=rp.DPReal)
     sig = stream.signature(depth=1)
     expected = rp.FreeTensor(np.array([1, 3, 7]), width=2, depth=1,
-                             dtype=rp.Rational)
+                             dtype=rp.DPReal)
     assert sig == expected, f"{sig} != {expected}"
 
 
@@ -411,3 +411,91 @@ def test_construct_sequence_of_lies():
     lsig = stream.log_signature(rp.RealInterval(0, 1))
 
     assert lsig == seq[0], f"{lsig} != {seq[0]}"
+
+
+def esig_stream2sig(array, depth):
+    no_pts, width = array.shape
+    ctx = rp.get_context(width=width, depth=depth, coeffs=rp.DPReal)
+
+    increments = np.diff(array, axis=0)
+
+    stream = rp.LieIncrementStream.from_increments(increments, ctx=ctx)
+
+    return stream.signature()
+
+
+def test_equivariance_esig_treelike1():
+
+    tree_like = np.array([
+            [0.0, 0],
+            [1, 0],
+            [1, 1],
+            [1, 0],
+            [2, 0],
+            [3, 1],
+            [2, 2],
+            [1, 1],
+            [2, 2],
+            [1, 3],
+            [2, 2],
+            [3, 3],
+            [2, 2],
+            [3, 1],
+            [4, 1],
+            [3, 1],
+            [2, 0],
+            [2, -1],
+            [2, 0],
+            [1, 0],
+            [1, -1],
+            [1, 0],
+            [0, 0],
+        ], dtype=np.float64)
+
+    pruned = np.array([[0.0, 0.0]], dtype=np.float64)
+
+    assert_array_almost_equal(esig_stream2sig(tree_like, 2), esig_stream2sig(pruned, 2))
+
+
+def test_equivariance_esig_treelike2():
+
+    tree_like = np.array([[0.0, 0], [1, 3], [0, 0], [1, 5], [2, 5], [1, 5], [0, 6], [1, 5], [0, 0]], dtype=np.float64)
+    pruned = np.array([[0., 0.]], dtype=np.float64)
+
+    assert_array_almost_equal(esig_stream2sig(tree_like, 2), esig_stream2sig(pruned, 2))
+
+def test_equivariance_esig_treelike3():
+    tree_like = np.array([[0.0, 0], [1, 1], [3, 1], [2, 1], [1, 1], [2, 0]], dtype=np.float64)
+    pruned = np.array([[0., 0.], [1. ,1.], [2., 0]], dtype=np.float64)
+
+    assert_array_almost_equal(esig_stream2sig(tree_like, 2), esig_stream2sig(pruned, 2))
+
+
+def test_linear_signature():
+    ctx = rp.get_context(width=3, depth=3, coeffs=rp.DPReal)
+
+    start = np.array([0., 0., 0.], dtype=np.float64)
+    end = np.array([1., 9., -6], dtype=np.float64)
+
+    increment = end - start
+
+    indices = np.array([0.0], dtype=np.float64)
+
+    stream = LieIncrementStream.from_increments(np.array([increment]), indices=indices, ctx=ctx)
+
+    sig = stream.signature(rp.RealInterval(0., 1.))
+
+    level0 = np.array([1.])
+    level1 = increment
+    level2 = np.einsum("i,j -> ij", level1, level1) / 2
+
+
+    # The divisor here should be 3!, but for some reason, that results in numerical values that are
+    # half as large as they should be in the level 3 terms. I think it is because we're missing one
+    # half of the calculations, because of the symmetry.
+    level3 = np.einsum("ij,k -> ijk", level2, level1) / 3
+
+    expected = np.hstack([level0, level1, level2.flatten(), level3.flatten()])
+
+    assert_array_almost_equal(sig, expected)
+

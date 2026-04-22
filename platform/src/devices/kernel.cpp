@@ -30,13 +30,20 @@
 // Created by user on 11/10/23.
 //
 
-#include "devices/event.h"
 #include "devices/kernel.h"
+
+#include <roughpy/core/helpers.hpp>
+#include <roughpy/core/check.h>
+#include <roughpy/core/debug_assertion.h>
+#include "roughpy/core/macros.h"              // for RPY_DLL_EXPORT
+#include "roughpy/core/slice.hpp"               // for Slice
+#include "roughpy/core/types.hpp"               // for bitmask_t, dimn_t, string
+
+#include "devices/event.h"
 #include "devices/queue.h"
 
 #include "devices/device_handle.h"
 
-#include <roughpy/core/helpers.h>
 
 using namespace rpy;
 using namespace rpy::devices;

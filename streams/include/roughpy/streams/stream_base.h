@@ -28,15 +28,19 @@
 #ifndef ROUGHPY_STREAMS_STREAM_BASE_H_
 #define ROUGHPY_STREAMS_STREAM_BASE_H_
 
+#include <roughpy/core/debug_assertion.h>
+#include <roughpy/core/macros.h>
+#include <roughpy/core/types.hpp>
+
 #include "roughpy/intervals/dyadic_interval.h"
 #include <roughpy/algebra/context.h>
 #include <roughpy/algebra/free_tensor.h>
 #include <roughpy/algebra/lie.h>
 #include <roughpy/algebra/shuffle_tensor.h>
-#include <roughpy/core/types.h>
 #include <roughpy/intervals/real_interval.h>
 #include <roughpy/platform/serialization.h>
 #include <roughpy/platform/errors.h>
+#include "roughpy/platform/alloc.h"
 
 #include "schema.h"
 
@@ -94,7 +98,7 @@ inline resolution_t param_to_resolution(param_t arg) noexcept
  * computed from log signatures, rather than using the data to compute these
  * independently.)
  */
-class ROUGHPY_STREAMS_EXPORT StreamInterface
+class ROUGHPY_STREAMS_EXPORT StreamInterface : public mem::SmallObjectBase
 {
     StreamMetadata m_metadata;
     std::shared_ptr<StreamSchema> p_schema;
@@ -146,6 +150,8 @@ protected:
             const intervals::Interval& interval,
             const algebra::Context& ctx
     ) const = 0;
+
+    algebra::FreeTensor unit_tensor() const;
 
 public:
     RPY_NO_DISCARD virtual algebra::Lie log_signature(

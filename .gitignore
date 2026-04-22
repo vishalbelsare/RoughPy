@@ -122,8 +122,12 @@ dkms.conf
 # *.iml
 # *.ipr
 
+# VSCode local settings
+.vscode/
+
 # CMake
 cmake-build-*/
+build/
 
 # Mongo Explorer plugin
 .idea/**/mongoSettings.xml
@@ -170,6 +174,7 @@ install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 _deps
+CMakeUserPresets.json
 
 ### Python template
 # Byte-compiled / optimized / DLL files
@@ -335,6 +340,7 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+.gdbinit
 
 roughpy/version.py
 /my_todo.txt
@@ -369,3 +375,4 @@ examples/*.png
 examples/documentation-testing.py
 
 todo.md
+tools/vcpkg/

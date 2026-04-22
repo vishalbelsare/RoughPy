@@ -27,7 +27,11 @@
 
 #include "lie_increment_stream.h"
 
-#include <roughpy/core/helpers.h>
+#include "roughpy/core/check.h"                    // for throw_exception
+#include "roughpy/core/debug_assertion.h"          // for RPY_DBG_ASSERT
+#include "roughpy/core/macros.h"                   // for RPY_UNUSED
+#include <roughpy/core/helpers.hpp>
+
 #include <roughpy/scalars/key_scalar_array.h>
 #include <roughpy/scalars/scalar_type.h>
 #include <roughpy/streams/lie_increment_stream.h>
@@ -110,8 +114,7 @@ static py::object lie_increment_stream_from_increments(py::object data, py::kwar
 
     dimn_t num_increments = ks_stream.row_count();
 
-    auto effective_support
-            = intervals::RealInterval::right_unbounded(0.0, md.interval_type);
+    intervals::RealInterval effective_support (0.0, 1.0, md.interval_type);
 
     if (kwargs.contains("indices")) {
         auto indices_arg = kwargs_pop(kwargs, "indices");
@@ -172,7 +175,9 @@ static py::object lie_increment_stream_from_increments(py::object data, py::kwar
 
     if (indices.empty()) {
         indices.reserve(num_increments);
-        for (dimn_t i = 0; i < num_increments; ++i) { indices.emplace_back(i); }
+        for (dimn_t i = 0; i < num_increments; ++i) {
+            indices.emplace_back(static_cast<param_t>(i));
+        }
         md.resolution = 0;
     } else if (indices.size() != num_increments) {
         RPY_THROW(
@@ -226,14 +231,20 @@ static py::object lie_increment_stream_from_increments(py::object data, py::kwar
              *md.resolution},
             md.schema
     ));
-    if (md.support) { result.restrict_to(*md.support); }
+
+    if (md.support) {
+        result.restrict_to(*md.support);
+    }
+    else {
+        result.restrict_to(effective_support);
+    }
 
     return py::reinterpret_steal<py::object>(
             python::RPyStream_FromStream(std::move(result))
     );
 }
 
-RPY_UNUSED static streams::Stream
+RPY_MAYBE_UNUSED static streams::Stream
 lie_increment_path_from_values(const py::object& data, const py::kwargs& kwargs)
 {
     RPY_THROW(std::runtime_error, "Not implemented");

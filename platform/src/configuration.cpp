@@ -29,7 +29,10 @@
 // Created by user on 17/04/23.
 //
 
-#include <roughpy/platform/configuration.h>
+#include "roughpy/platform/configuration.h" // IWYU pragma: associated
+
+#include "roughpy/core/slice.hpp"  // for Slice
+#include "roughpy/core/types.hpp"  // for string_view
 
 using namespace rpy;
 

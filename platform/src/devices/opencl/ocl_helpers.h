@@ -35,8 +35,9 @@
 #include "ocl_handle_errors.h"
 #include "ocl_headers.h"
 
-#include <roughpy/core/slice.h>
-#include <roughpy/core/types.h>
+#include <roughpy/core/debug_assertion.h>
+#include <roughpy/core/slice.hpp>
+#include <roughpy/core/types.hpp>
 #include "devices/core.h"
 
 namespace rpy {

@@ -34,7 +34,8 @@
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 #include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
-#include <roughpy/core/helpers.h>
+#include "roughpy/core/check.h"
+#include <roughpy/core/helpers.hpp>
 #include <roughpy/core/macros.h>
 #include <roughpy/scalars/key_scalar_array.h>
 #include <roughpy/scalars/key_scalar_stream.h>
@@ -68,7 +69,7 @@ struct VectorConstructionData {
     VectorType vector_type = VectorType::Sparse;
 };
 
-class ROUGHPY_ALGEBRA_EXPORT ContextBase : public boost::intrusive_ref_counter<ContextBase>
+class ROUGHPY_ALGEBRA_EXPORT ContextBase : public mem::RcBase<ContextBase>
 {
     deg_t m_width;
     deg_t m_depth;

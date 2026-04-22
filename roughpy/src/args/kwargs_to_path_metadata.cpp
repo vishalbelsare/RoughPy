@@ -28,6 +28,10 @@
 #include "kwargs_to_path_metadata.h"
 #include "parse_algebra_configuration.h"
 
+#include "roughpy/core/check.h"                       // for throw_exception
+#include "roughpy/core/debug_assertion.h"             // for RPY_DBG_ASSERT
+
+
 #include "algebra/context.h"
 #include "scalars/scalar_type.h"
 
@@ -56,7 +60,6 @@ python::PyStreamMetaData python::kwargs_to_metadata(pybind11::kwargs& kwargs)
             false                                // include_param_as_data
     };
 
-    streams::ChannelType ch_type;
 
     if (kwargs.contains("schema")) {
         auto schema = kwargs_pop(kwargs, "schema");
@@ -180,10 +183,11 @@ python::PyStreamMetaData python::kwargs_to_metadata(pybind11::kwargs& kwargs)
 
     if (md.schema->is_final()) {
         if (!algebra_config.width) {
-            algebra_config.width = md.schema->width();
+            algebra_config.width = static_cast<deg_t>(md.schema->width());
             RPY_DBG_ASSERT(md.width == 0);
             md.width = *algebra_config.width;
-        } else if (md.schema->width() != *algebra_config.width) {
+        } else if (static_cast<deg_t>(md.schema->width()) != *algebra_config
+        .width) {
             RPY_THROW(
                     py::value_error,
                     "specified width does not match the schema width"
@@ -191,7 +195,7 @@ python::PyStreamMetaData python::kwargs_to_metadata(pybind11::kwargs& kwargs)
         }
     }
 
-    // Additional information that will not effect the algebra config.
+    // Additional information that will not affect the algebra config.
     if (kwargs.contains("vtype")) {
         md.vector_type
                 = kwargs_pop(kwargs, "vtype").cast<algebra::VectorType>();
@@ -203,10 +207,12 @@ python::PyStreamMetaData python::kwargs_to_metadata(pybind11::kwargs& kwargs)
 
     if (kwargs.contains("support")) {
         auto support = kwargs_pop(kwargs, "support");
-        if (!py::isinstance<intervals::Interval>(support)) {
+        if (py::isinstance<intervals::Interval>(support)) {
             md.support = intervals::RealInterval(
                     support.cast<const intervals::Interval&>()
             );
+        } else {
+            RPY_THROW(py::type_error, "Support must be an Interval");
         }
     }
 

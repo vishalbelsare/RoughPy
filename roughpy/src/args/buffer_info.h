@@ -5,11 +5,10 @@
 #ifndef ROUGHPY_BUFFER_INFO_H
 #define ROUGHPY_BUFFER_INFO_H
 
-#define PY_SSIZE_T_CLEAN
-#include <Python.h>
+#include "roughpy_python.h"
 
 #include <roughpy/core/macros.h>
-#include <roughpy/core/types.h>
+#include <roughpy/core/types.hpp>
 #include <roughpy/platform/devices/core.h>
 
 #include <boost/container/small_vector.hpp>
@@ -23,7 +22,8 @@ struct BufferFormat {
 
 class BufferInfo
 {
-    Py_buffer m_view;
+    // This is mutable because the Python API always passes mutable pointers
+    mutable Py_buffer m_view;
     optional<Py_ssize_t> m_size;
 
 public:

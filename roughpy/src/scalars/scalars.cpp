@@ -32,6 +32,10 @@
 
 #include <pybind11/operators.h>
 
+#include "roughpy/core/check.h"                         // for throw_exception
+#include "roughpy/core/debug_assertion.h"               // for RPY_DBG_ASSERT
+#include "roughpy/core/macros.h"                        // for RPY_CLANG_DIS...
+
 #include <roughpy/scalars/scalar.h>
 #include <roughpy/scalars/scalar_array.h>
 #include <roughpy/scalars/scalar_type.h>
@@ -282,7 +286,7 @@ void python::init_scalars(pybind11::module_& m)
         type = scalars::ScalarTypeCode::NAME;                                  \
         break
 
-RPY_UNUSED static const scalars::ScalarType*
+RPY_MAYBE_UNUSED static const scalars::ScalarType*
 dlpack_dtype_to_scalar_type(DLDataType dtype, DLDevice device)
 {
     using rpy::devices::DeviceType;

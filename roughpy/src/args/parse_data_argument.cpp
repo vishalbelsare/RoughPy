@@ -10,6 +10,8 @@
 #include "numpy.h"
 #include "strided_copy.h"
 
+#include "roughpy/core/ranges.hpp"
+
 #include "scalars/pytype_conversion.h"
 #include "scalars/r_py_polynomial.h"
 #include "scalars/scalar.h"
@@ -81,7 +83,7 @@ private:
 
     void handle_scalar(py::handle value, bool key = false);
     void handle_key_scalar(py::handle value);
-    void handle_lie(py::handle value);
+    [[maybe_unused]] void handle_lie(py::handle value);
 
     void handle_scalar_leaf(LeafItem& leaf);
     void handle_key_scalar_leaf(LeafItem& leaf);
@@ -384,15 +386,24 @@ void ConversionManager::handle_sequence_leaf(LeafItem& leaf)
 
 void ConversionManager::do_conversion()
 {
-    for (auto& leaf : m_leaves) {
-        switch (leaf.leaf_type) {
-            case LeafType::Scalar: handle_scalar_leaf(leaf); break;
-            case LeafType::KeyScalar: handle_key_scalar_leaf(leaf); break;
-            case LeafType::Lie: handle_lie_leaf(leaf); break;
-            case LeafType::DLTensor: handle_dltensor_leaf(leaf); break;
-            case LeafType::Buffer: handle_buffer_leaf(leaf); break;
-            case LeafType::Dict: handle_dict_leaf(leaf); break;
-            case LeafType::Sequence: handle_sequence_leaf(leaf); break;
+    for (size_t i = 0, n = m_leaves.size(); i< n; ++i) {
+        auto& leaf = m_leaves[i];
+        try {
+            switch (leaf.leaf_type) {
+                case LeafType::Scalar: handle_scalar_leaf(leaf); break;
+                case LeafType::KeyScalar: handle_key_scalar_leaf(leaf); break;
+                case LeafType::Lie: handle_lie_leaf(leaf); break;
+                case LeafType::DLTensor: handle_dltensor_leaf(leaf); break;
+                case LeafType::Buffer: handle_buffer_leaf(leaf); break;
+                case LeafType::Dict: handle_dict_leaf(leaf); break;
+                case LeafType::Sequence: handle_sequence_leaf(leaf); break;
+            }
+        } catch (scalars::ScalarConversionException& exc) {
+            std::ostringstream oss;
+            oss << "Unable to convert value " << i;
+            oss << " from " << exc.srcType();
+            oss << " to " << exc.dstType();
+            throw py::value_error(oss.str());
         }
     }
 }
@@ -403,7 +414,7 @@ void ConversionManager::check_dl_size(py::capsule dlcap, deg_t depth)
     auto& tensor = managed_tensor->dl_tensor;
 
     depth += tensor.ndim;
-    RPY_CHECK(depth <= m_options.max_nested);
+    RPY_CHECK(static_cast<dimn_t>(depth) <= m_options.max_nested);
 
     auto& leaf = add_leaf(dlcap, LeafType::DLTensor);
 
@@ -415,7 +426,7 @@ void ConversionManager::check_dl_size(py::capsule dlcap, deg_t depth)
     leaf.size = static_cast<dimn_t>(std::accumulate(
             leaf.shape.begin(),
             leaf.shape.end(),
-            1,
+            1LL,
             std::multiplies<>()
     ));
 }
@@ -425,7 +436,7 @@ void ConversionManager::check_buffer_size(py::buffer buffer, deg_t depth)
     const auto info = buffer.request();
 
     depth += info.ndim;
-    RPY_CHECK(depth <= m_options.max_nested);
+    RPY_CHECK(static_cast<dimn_t>(depth) <= m_options.max_nested);
 
     auto& leaf = add_leaf(buffer, LeafType::Buffer);
 
@@ -437,7 +448,7 @@ void ConversionManager::check_buffer_size(py::buffer buffer, deg_t depth)
     leaf.size = static_cast<dimn_t>(std::accumulate(
             leaf.shape.begin(),
             leaf.shape.end(),
-            1,
+            1LL,
             std::multiplies<>()
     ));
 }
@@ -448,7 +459,7 @@ void ConversionManager::check_size_and_type_recurse(
 )
 {
     RPY_CHECK(
-            depth < m_options.max_nested,
+            static_cast<dimn_t>(depth) < m_options.max_nested,
             "maximum nested depth reached in this context",
             py::value_error
     );
@@ -506,10 +517,16 @@ void ConversionManager::check_size_and_type_recurse(
                     "dict must be key-scalar or timestamp-value"
             );
         }
+    } else if (py::isinstance<py::str>(node)) {
+        // A string is never a valid container
+        RPY_THROW(
+            py::value_error,
+            "unexpected string as tensor data"
+        );
     } else if (py::isinstance<py::sequence>(node)) {
         RPY_CHECK(py::len(node) > 0);
         optional<ValueType> expected_tp;
-        bool is_leaf = std::all_of(
+        bool is_leaf = rpy::ranges::all_of(
                 node.begin(),
                 node.end(),
                 [this, &expected_tp](auto item) {
@@ -537,6 +554,12 @@ void ConversionManager::check_size_and_type_recurse(
                                             m_options.alternative_key
                                                     ->py_key_type
                                     ))
+                        );
+                    } else if (py::isinstance<py::str>(item)) {
+                        // A string is invalid for any tensor element
+                        RPY_THROW(
+                            py::value_error,
+                            "unexpected string in key-scalar data"
                         );
                     }
 
@@ -671,9 +694,7 @@ void ParsedData::fill_ks_stream(scalars::KeyScalarStream& ks_stream)
             case LeafType::Buffer: {
                 if (leaf.size == 0) { break; }
                 if (leaf.shape.size() == 1) {
-                    auto sz = leaf.size;
                     ks_stream.push_back(leaf.data.borrow());
-
                 } else {
                     dimn_t sz = leaf.shape.back();
                     dimn_t offset1 = 0;

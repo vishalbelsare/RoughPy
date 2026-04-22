@@ -33,7 +33,7 @@
 
 #include <memory>
 
-#include <roughpy/core/types.h>
+#include <roughpy/core/types.hpp>
 #include <roughpy/platform/serialization.h>
 #include <roughpy/scalars/scalar.h>
 #include <roughpy/scalars/scalar_array.h>
@@ -65,9 +65,9 @@ template <
         typename Impl,
         template <typename, template <typename> class> class Wrapper>
 using select_owned_or_borrowed_t = conditional_t<
-        is_pointer<remove_reference_t<Impl>>::value,
+        is_pointer_v<remove_reference_t<Impl>>,
         Wrapper<remove_cv_t<remove_pointer_t<Impl>>, BorrowedStorageModel>,
-        Wrapper<remove_cv_ref_t<Impl>, OwnedStorageModel>>;
+        Wrapper<remove_cvref_t<Impl>, OwnedStorageModel>>;
 
 template <typename IFace>
 struct with_interface {
@@ -131,7 +131,7 @@ public:
     template <
             typename Impl,
             typename
-            = enable_if_t<!is_same<remove_cv_ref_t<Impl>, algebra_t>::value>>
+            = enable_if_t<!is_same_v<remove_cvref_t<Impl>, algebra_t>>>
     explicit AlgebraBase(context_pointer ctx, Impl&& arg)
         : p_impl(new dtl::select_owned_or_borrowed_t<Impl, DerivedImpl>(
                 std::move(ctx), std::forward<Impl>(arg)
@@ -139,7 +139,7 @@ public:
     {}
 
     template <typename Impl, typename... Args>
-    static enable_if_t<!is_base_of<Interface, Impl>::value, algebra_t>
+    static enable_if_t<!is_base_of_v<Interface, Impl>, algebra_t>
     from_args(context_pointer ctx, Args&&... args)
     {
         return algebra_t(
@@ -151,7 +151,7 @@ public:
     }
 
     template <typename Wrapper, typename... Args>
-    static enable_if_t<is_base_of<Interface, Wrapper>::value, algebra_t>
+    static enable_if_t<is_base_of_v<Interface, Wrapper>, algebra_t>
     from_args(context_pointer ctx, Args&&... args)
     {
         return algebra_t(
@@ -296,12 +296,15 @@ public:
     RPY_NO_DISCARD
     bool operator!=(const algebra_t& other) const { return !operator==(other); }
 
+
+    bool almost_zero(const scalars::Scalar& atol) const;
 private:
     RPY_SERIAL_ACCESS();
 
     RPY_SERIAL_SAVE_FN();
     RPY_SERIAL_LOAD_FN();
 };
+
 
 
 template <
@@ -312,6 +315,7 @@ operator<<(std::ostream& os, const AlgebraBase<Interface, DerivedImpl>& alg)
 {
     return alg.print(os);
 }
+
 
 namespace dtl {
 

@@ -33,6 +33,10 @@ RPY_MSVC_DISABLE_WARNING(4661)
 
 #include <pybind11/operators.h>
 
+#include "roughpy/core/check.h"                  // for throw_exception, RPY...
+#include "roughpy/core/macros.h"                 // for RPY_MSVC_DISABLE_WAR...
+#include "roughpy/core/types.hpp"                  // for key_type, deg_t
+
 #include <roughpy/algebra/context.h>
 #include <roughpy/algebra/lie.h>
 #include <roughpy/scalars/scalar.h>
@@ -115,12 +119,12 @@ static Lie construct_lie(py::object data, py::kwargs kwargs)
 
     auto parsed_data = python::parse_data_argument(data, options);
 
-    bool is_sparse = false;
+    // bool is_sparse = false;
     scalars::KeyScalarArray buffer;
     if (parsed_data.size() == 1) {
         auto& leaf = parsed_data.back();
         buffer = std::move(leaf.data);
-        is_sparse = leaf.value_type == python::ValueType::KeyValue;
+        // is_sparse = leaf.value_type == python::ValueType::KeyValue;
     }
 
     if (helper.ctype == nullptr) {

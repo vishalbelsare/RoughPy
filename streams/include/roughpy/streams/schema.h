@@ -33,8 +33,8 @@
 #ifndef ROUGHPY_STREAMS_SCHEMA_H
 #define ROUGHPY_STREAMS_SCHEMA_H
 
-#include <roughpy/core/traits.h>
-#include <roughpy/core/types.h>
+#include <roughpy/core/traits.hpp>
+#include <roughpy/core/types.hpp>
 
 #include <roughpy/algebra/algebra_fwd.h>
 #include <roughpy/algebra/lie_basis.h>
@@ -132,7 +132,7 @@ public:
     }
 
     template <typename Context, typename... Args>
-    enable_if_t<is_base_of<Parameterization, Context>::value>
+    enable_if_t<is_base_of_v<Parameterization, Context>>
     init_context(Args&&... args)
     {
         RPY_DBG_ASSERT(!p_parameterization);

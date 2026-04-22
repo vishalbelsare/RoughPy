@@ -31,8 +31,11 @@
 //
 
 #include <algorithm>
-#include <cereal/types/vector.hpp>
+
+#include "roughpy/core/check.h"       // for throw_exception, RPY_CHECK
 #include <roughpy/core/macros.h>
+#include <roughpy/core/types.hpp>      // for basic_string, pair, move
+
 #include <roughpy/streams/schema.h>
 
 using namespace rpy;
@@ -62,15 +65,16 @@ bool StreamSchema::compare_labels(
     if (item_label.empty()) { return false; }
 
     auto lit = item_label.begin();
+    const auto lend = item_label.end();
     auto rit = ref_label.begin();
 
-    for (; *lit != '\0'; ++lit, ++rit) {
+    for (; lit != lend || *lit != '\0'; ++lit, ++rit) {
         if (*rit != *lit) { return false; }
     }
 
     // Either item_label == ref_label or, ref_label has
     // item_label as a prefix followed by ':'
-    return *rit == '\0' || *rit == ':';
+    return rit == ref_label.end() || *rit == '\0' || *rit == ':';
 }
 
 dimn_t StreamSchema::channel_it_to_width(const_iterator channel_it) const
@@ -204,6 +208,11 @@ dimn_t StreamSchema::label_to_stream_dim(const string& label) const
     auto result = width_to_iterator(channel);
     auto variant_begin
             = label.begin() + static_cast<idimn_t>(channel->first.size());
+
+    if (variant_begin == label.end()) {
+        return result;
+    }
+
     /*
      * *variant_begin can be either '\0', so the channel is the id
      * we're looking for, or ':', in which case we need to look for
@@ -283,8 +292,8 @@ typename StreamSchema::lie_key StreamSchema::time_channel_to_lie_key() const
 
 void StreamSchema::finalize(deg_t n_channels)
 {
-
-    if (n_channels > 0 && n_channels < width()) {
+    auto my_width = static_cast<deg_t>(width());
+    if (n_channels > 0 && n_channels < my_width) {
         RPY_THROW(
                 std::runtime_error,
                 "specified number of channels does not match actual number of "
@@ -292,7 +301,7 @@ void StreamSchema::finalize(deg_t n_channels)
         );
     }
 
-    for (auto i = width(); i < n_channels; ++i) { insert_increment(""); }
+    for (auto i = my_width; i < n_channels; ++i) { insert_increment(""); }
 
     m_is_final = true;
 }

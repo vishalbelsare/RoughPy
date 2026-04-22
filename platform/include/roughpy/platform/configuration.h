@@ -32,16 +32,20 @@
 #ifndef ROUGHPY_PLATFORM_CONFIGURATION_H
 #define ROUGHPY_PLATFORM_CONFIGURATION_H
 
-#include <roughpy/core/traits.h>
-#include <roughpy/core/types.h>
-#include <roughpy/core/slice.h>
-
 #include <memory>
 
-#include "roughpy_platform_export.h"
-#include "filesystem.h"
+#include "roughpy/core/macros.h"
+#include <roughpy/core/traits.hpp>
+#include <roughpy/core/types.hpp>
+#include <roughpy/core/slice.hpp>
+
+
+#include "roughpy/platform/roughpy_platform_export.h"
+
+#include "filesystem.h" // IWYU pragma: keep
 
 namespace rpy {
+
 
 // Forward declaration
 class Configuration;
@@ -72,7 +76,7 @@ public:
     string_view get_raw_config_value(string_view property) const;
 
     template <typename T>
-    RPY_NO_DISCARD enable_if_t<is_constructible<T, string_view>::value, T>
+    RPY_NO_DISCARD enable_if_t<is_constructible_v<T, string_view>, T>
     get_config_value(string_view property) const;
 
     fs::path stream_cache_dir() const;
@@ -85,7 +89,7 @@ public:
 };
 
 template <typename T>
-RPY_NO_DISCARD enable_if_t<is_constructible<T, string_view>::value, T>
+RPY_NO_DISCARD enable_if_t<is_constructible_v<T, string_view>, T>
 Configuration::get_config_value(string_view property) const
 {
     return T(get_raw_config_value(property));

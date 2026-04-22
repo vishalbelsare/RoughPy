@@ -28,7 +28,7 @@
 #ifndef ROUGHPY_SCALARS_SCALAR_SERIALIZATION_H_
 #define ROUGHPY_SCALARS_SCALAR_SERIALIZATION_H_
 
-#include <roughpy/core/helpers.h>
+#include <roughpy/core/helpers.hpp>
 #include <roughpy/platform/serialization.h>
 
 #include "scalar_types.h"
@@ -104,7 +104,7 @@ public:
     MPIntegerSerializationHelper(Integer& p)
         : ptr(&p) {}
 
-    using ptr_t = conditional_t<is_const<Integer>::value, const char*, char*>;
+    using ptr_t = conditional_t<is_const_v<Integer>, const char*, char*>;
 
 #if RPY_USING_GMP
     using limbs_t = mp_limb_t;

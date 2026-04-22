@@ -30,10 +30,16 @@
 // Created by user on 02/03/23.
 //
 
-#include <ostream>
+#include "roughpy/intervals/interval.h"
 
-#include <roughpy/platform/errors.h>
-#include <roughpy/intervals/interval.h>
+#include <ostream>
+#include <stdexcept>
+
+#include <roughpy/core/check.h>
+#include <roughpy/core/types.hpp>
+
+#include "roughpy_intervals_export.h"
+
 
 using namespace rpy;
 using namespace rpy::intervals;
@@ -69,7 +75,7 @@ bool Interval::is_associated(const Interval& arg) const noexcept
 }
 bool Interval::contains(const Interval& arg) const noexcept
 {
-    return contains_point(arg.inf()) && contains_point(arg.sup());
+    return inf() <= arg.inf() && arg.sup() <= sup();
 }
 bool Interval::intersects_with(const Interval& arg) const noexcept
 {

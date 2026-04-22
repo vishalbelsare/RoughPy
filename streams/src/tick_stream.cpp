@@ -31,6 +31,8 @@
 
 #include <roughpy/streams/tick_stream.h>
 
+#include "roughpy/core/debug_assertion.h"       // for RPY_DBG_ASSERT
+
 #include <cereal/types/vector.hpp>
 #include <cereal/types/unordered_map.hpp>
 #include <set>
@@ -126,6 +128,8 @@ streams::TickStream::recursive_logsig(streams::TickStream::DyadicInterval di)
     if (auto pdi1 = smallest_dyadic_containing_all_events(di, m_resolution)) {
         auto& it = m_data[*pdi1];
         if (!it.is_zero()) { return it; }
+
+        if (pdi1->power() == m_resolution) { return it; }
 
         std::vector<algebra::Lie> v;
         v.reserve(2);

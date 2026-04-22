@@ -34,7 +34,12 @@
 
 #include <sstream>
 
-#include <roughpy/core/alloc.h>
+#include "roughpy/core/check.h"                    // for throw_exception
+#include "roughpy/core/macros.h"                   // for RPY_UNUSED_VAR
+#include "roughpy/core/types.hpp"                    // for deg_t, string
+#include "roughpy/core/construct_inplace.hpp"
+#include "roughpy/core/hash.hpp"
+
 #include <roughpy/platform/archives.h>
 #include <roughpy/platform/serialization.h>
 #include <roughpy/scalars/scalar.h>
@@ -627,7 +632,7 @@ int monomial_bool(PyObject* self)
 }
 Py_hash_t monomial_hash(PyObject* self)
 {
-    hash<scalars::monomial> hasher;
+    Hash<scalars::monomial> hasher;
     auto hash_val = static_cast<Py_hash_t>(hasher(cast_mon(self)));
     return hash_val;
 }

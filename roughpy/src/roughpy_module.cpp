@@ -30,16 +30,14 @@
 // Created by user on 11/03/23.
 //
 // Python header first
-#define PY_SSIZE_T_CLEAN
 
-#include <Python.h>
+#include "roughpy_python.h"
 
 #include "roughpy_module.h"
 
 #include "algebra/algebra.h"
 #include "args/convert_timestamp.h"
 #include "intervals/intervals.h"
-#include "recombine.h"
 #include "scalars/scalars.h"
 #include "streams/streams.h"
 
@@ -57,6 +55,12 @@ PYBIND11_MODULE(_roughpy, m)
 {
     using namespace rpy::python;
 
+    init_roughpy_module(m);
+}
+
+
+void rpy::python::init_roughpy_module(py::module_& m)
+{
     m.add_object("__version__", py::str(ROUGHPY_VERSION_STRING));
     init_datetime(m);
 

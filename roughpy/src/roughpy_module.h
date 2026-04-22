@@ -33,19 +33,17 @@
 #ifndef ROUGHPY_ROUGHPY_SRC_ROUGHPY_MODULE_H
 #define ROUGHPY_ROUGHPY_SRC_ROUGHPY_MODULE_H
 
+#include <stdexcept>
+
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include <roughpy/core/traits.h>
-#include <roughpy/core/types.h>
+#include <roughpy/core/traits.hpp>
+#include <roughpy/core/types.hpp>
 #include <roughpy/platform/errors.h>
 
-#if defined(RPY_GCC)
-#  define RPY_NO_EXPORT __attribute__((visibility("hidden")))
-#else
-#  define RPY_NO_EXPORT
-#endif
+
 
 #ifndef RPY_CPP_17
 // `boost::optional` as an example -- can be any `std::optional`-like container
@@ -60,6 +58,7 @@ struct type_caster<boost::optional<T>>
 #endif
 
 namespace py = pybind11;
+
 namespace rpy {
 namespace python {
 
@@ -79,11 +78,48 @@ inline py::object kwargs_pop(py::kwargs& kwargs, const char* name)
 void check_for_excess_arguments(const py::kwargs& kwargs);
 
 template <typename T>
-enable_if_t<is_base_of<py::object, T>::value, T> steal_as(py::object& obj
-) noexcept
+enable_if_t<is_base_of_v<py::object, T>, T> steal_as(py::object& obj
+) noexcept { return py::reinterpret_steal<T>(obj.release().ptr()); }
+
+
+/**
+ * A helper method that executes a given callable and catches any exceptions
+ * that might occur during its execution. The method ensures that exceptions
+ * are handled gracefully, and the result of the callable is returned if no
+ * exceptions are thrown.
+ *
+ * @param fn The callable object (function, lambda, etc.) to be executed.
+ *
+ * @return Returns the result from the provided callable if executed without
+ *         exceptions, or any result from the exception handler if applicable.
+ */
+template <typename F>
+bool with_caught_exceptions(F&& fn) noexcept
 {
-    return py::reinterpret_steal<T>(obj.release().ptr());
+    bool completed_successfully = false;
+    try {
+        fn();
+        completed_successfully = true;
+    // } catch (const py::error_already_set& e) { // Python exception
+    } catch (const std::invalid_argument& e) {
+        PyErr_SetString(PyExc_ValueError, e.what());
+    } catch (const std::domain_error& e) {
+        PyErr_SetString(PyExc_ValueError, e.what());
+    } catch (const std::length_error& e) {
+        PyErr_SetString(PyExc_ValueError, e.what());
+    }catch (const std::out_of_range& e) {
+        PyErr_SetString(PyExc_IndexError, e.what());
+    } catch (const std::bad_alloc& e) {
+        PyErr_SetString(PyExc_MemoryError, e.what());
+    // } catch (const py::builtin_exception& e) {
+    //     e.set_error();
+    } catch (std::exception& e) {
+        PyErr_SetString(PyExc_RuntimeError, e.what());
+    }
+    return completed_successfully;
 }
+
+void init_roughpy_module(py::module_& m);
 
 }// namespace python
 }// namespace rpy

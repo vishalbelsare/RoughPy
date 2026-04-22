@@ -239,6 +239,18 @@ def test_create_FreeTensor_specified_width_incomplete_degree_range(rng, width):
                               np.concatenate((data, np.zeros(width ** 2 - 1))))
 
 
+def test_create_FreeTensor_string_exception():
+    context = roughpy.get_context(width=2, depth=3, coeffs=roughpy.DPReal)
+
+    with pytest.raises(ValueError) as excinfo:
+        FreeTensor("string_free_tensor_data", ctx=context)
+    assert "unexpected string as tensor data" in str(excinfo.value)
+
+    with pytest.raises(ValueError) as excinfo:
+        FreeTensor(["string_free_tensor_data_item"], ctx=context)
+    assert "unexpected string in key-scalar data" in str(excinfo.value)
+
+
 def test_FreeTensor_array_roundtrip(width, rdata, rtensor):
     assert rtensor.width == width
     assert_array_equal(rdata, np.array(rtensor)[:rdata.shape[0]])
@@ -524,3 +536,14 @@ def test_to_array_rational_poly_coeffs():
     array_tensor = np.array(tensor)
 
     assert array_tensor.dtype == object
+
+
+
+
+def test_rational_tensor_to_array():
+    ctx = roughpy.get_context(width=2, depth=5, coeffs=roughpy.Rational)
+    tensor = FreeTensor([i for i in range(_tensor_size(2, 5))], ctx=ctx)
+
+    array = np.array(tensor)
+
+    assert array.dtype == object

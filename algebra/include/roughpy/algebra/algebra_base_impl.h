@@ -33,7 +33,7 @@
 #include <ostream>
 
 #include <roughpy/core/macros.h>
-#include <roughpy/core/types.h>
+#include <roughpy/core/types.hpp>
 #include <roughpy/platform/serialization.h>
 #include <roughpy/scalars/scalar_types.h>
 
@@ -538,7 +538,7 @@ AlgebraBase<Interface, DerivedImpl>::add_scal_mul(
         const algebra_t& lhs, const scalars::Scalar& rhs
 )
 {
-    if (!is_equivalent_to_zero(lhs) && rhs.is_zero()) {
+    if (!is_equivalent_to_zero(lhs) && !rhs.is_zero()) {
         RPY_CHECK_CONTEXTS(lhs);
 
         if (!is_equivalent_to_zero(*this)) {
@@ -557,7 +557,7 @@ AlgebraBase<Interface, DerivedImpl>::sub_scal_mul(
         const algebra_t& lhs, const scalars::Scalar& rhs
 )
 {
-    if (!is_equivalent_to_zero(lhs) && rhs.is_zero()) {
+    if (!is_equivalent_to_zero(lhs) && !rhs.is_zero()) {
         RPY_CHECK_CONTEXTS(lhs);
 
         if (!is_equivalent_to_zero(*this)) {
@@ -701,6 +701,17 @@ bool AlgebraBase<Interface, DerivedImpl>::operator==(const algebra_t& other
 
     return p_impl->equals(other);
 }
+
+template <typename Interface, template <typename, template <typename> class> class DerivedImpl>
+bool AlgebraBase<Interface, DerivedImpl>::almost_zero(const scalars::Scalar& atol) const
+{
+    if (is_equivalent_to_zero(*this)) {
+        return true;
+    }
+
+    return p_impl->almost_zero(atol);
+}
+
 template <
         typename Interface,
         template <typename, template <typename> class> class DerivedImpl>

@@ -28,21 +28,26 @@
 #ifndef ROUGHPY_SCALARS_SCALAR_H_
 #define ROUGHPY_SCALARS_SCALAR_H_
 
-#include "packed_scalar_type_ptr.h"
-#include "scalar_interface.h"
-#include "scalar_type.h"
-#include "scalars_fwd.h"
 
-#include <roughpy/core/alloc.h>
-#include <roughpy/core/helpers.h>
+
+#include "roughpy/core/construct_inplace.hpp"
+#include "roughpy/core/check.h"             // for throw_exception, RPY_CHECK
+#include "roughpy/core/debug_assertion.h"   // for RPY_DBG_ASSERT
+
+#include <roughpy/core/helpers.hpp>
 #include <roughpy/core/macros.h>
-#include <roughpy/core/slice.h>
-#include <roughpy/core/traits.h>
-#include <roughpy/core/types.h>
+#include <roughpy/core/slice.hpp>
+#include <roughpy/core/traits.hpp>
+#include <roughpy/core/types.hpp>
 #include <roughpy/platform/serialization.h>
 #include <roughpy/platform/archives.h>
 
 #include <cereal/types/vector.hpp>
+
+#include "packed_scalar_type_ptr.h"
+#include "scalar_interface.h"
+#include "scalar_type.h"
+#include "scalars_fwd.h"
 
 namespace rpy {
 namespace scalars {
@@ -142,16 +147,45 @@ content_type_of(PackedScalarTypePointer<ScalarContentType> ptype) noexcept
 
 template <typename T>
 struct can_be_scalar : conditional_t<
-                               !is_base_of<Scalar, T>::value,
-                               std::true_type,
-                               std::false_type> {
+                               !is_base_of_v<Scalar, T>,
+                               true_type,
+                               false_type> {
 };
 
 template <typename T>
-struct can_be_scalar<std::unique_ptr<T>> : std::false_type {
+struct can_be_scalar<std::unique_ptr<T>> : false_type {
 };
 
 }// namespace dtl
+
+
+class ROUGHPY_SCALARS_EXPORT ScalarConversionException : public std::exception
+{
+private:
+    devices::TypeInfo dst_type;
+    devices::TypeInfo src_type;
+
+public:
+    ScalarConversionException(
+        devices::TypeInfo dst_type_,
+        devices::TypeInfo src_type_
+    ) noexcept :
+        dst_type(dst_type_),
+        src_type(src_type_)
+    {
+    }
+
+    devices::TypeInfo dstType() const noexcept
+    {
+        return dst_type;
+    }
+
+    devices::TypeInfo srcType() const noexcept
+    {
+        return src_type;
+    }
+};
+
 
 /**
  * @brief A wrapper around scalar values.
@@ -195,10 +229,10 @@ public:
     //    template <
     //            typename T,
     //            typename = enable_if_t<
-    //                    !is_reference<T>::value &&
-    //                    is_standard_layout<T>::value
-    //                    && is_trivially_copyable<T>::value
-    //                    && is_trivially_destructible<T>::value
+    //                    !is_reference<T> &&
+    //                    is_standard_layout<T>
+    //                    && is_trivially_copyable<T>
+    //                    && is_trivially_destructible<T>
     //                    && (sizeof(T) <= sizeof(void*))>>
     //    explicit Scalar(T value)
     //        : p_type_and_content_type(
@@ -218,7 +252,7 @@ public:
           ),
           integer_for_convenience(0)
     {
-        if constexpr (is_standard_layout<T>::value && is_trivially_copyable<T>::value && is_trivially_destructible<T>::value && sizeof(T) <= sizeof(void*)) {
+        if constexpr (is_standard_layout_v<T> && is_trivially_copyable_v<T> && is_trivially_destructible_v<T> && sizeof(T) <= sizeof(void*)) {
             std::memcpy(trivial_bytes, &value, sizeof(T));
         } else {
             allocate_data();
@@ -230,9 +264,9 @@ public:
     template <
             typename T,
             typename = enable_if_t<
-                    !is_pointer<T>::value && is_standard_layout<T>::value
-                    && is_trivially_copyable<T>::value
-                    && is_trivially_destructible<T>::value>>
+                    !is_pointer_v<T> && is_standard_layout_v<T>
+                    && is_trivially_copyable_v<T>
+                    && is_trivially_destructible_v<T>>>
     explicit Scalar(const ScalarType* type, T&& value)
         : p_type_and_content_type(type, dtl::ScalarContentType::TrivialBytes),
           integer_for_convenience(0)
@@ -241,17 +275,17 @@ public:
                 trivial_bytes,
                 type_info(),
                 &value,
-                devices::type_info<remove_cv_ref_t<T>>()
+                devices::type_info<remove_cvref_t<T>>()
         );
     }
 
     template <
             typename T,
             enable_if_t<
-                    !is_pointer<T>::value
-                            && (!is_standard_layout<T>::value
-                                || !is_trivially_copyable<T>::value
-                                || !is_trivially_destructible<T>::value),
+                    !is_pointer_v<T>
+                            && (!is_standard_layout_v<T>
+                                || !is_trivially_copyable_v<T>
+                                || !is_trivially_destructible_v<T>),
                     int>
             = 0>
     explicit Scalar(const ScalarType* type, T&& value)
@@ -260,10 +294,10 @@ public:
     {
         allocate_data();
         auto this_info = type_info();
-        auto value_info = devices::type_info<remove_cv_ref_t<T>>();
+        auto value_info = devices::type_info<remove_cvref_t<T>>();
         if (this_info == value_info) {
             construct_inplace(
-                    static_cast<remove_cv_ref_t<T>*>(opaque_pointer),
+                    static_cast<remove_cvref_t<T>*>(opaque_pointer),
                     std::forward<T>(value)
             );
         } else {
@@ -284,7 +318,7 @@ public:
 
     template <
             typename I,
-            typename = enable_if_t<is_base_of<ScalarInterface, I>::value>>
+            typename = enable_if_t<is_base_of_v<ScalarInterface, I>>>
     explicit Scalar(std::unique_ptr<I>&& iface)
         : p_type_and_content_type(
                   nullptr,
@@ -322,9 +356,11 @@ public:
      *
      */
     template <typename T>
-    enable_if_t<!is_base_of<Scalar, T>::value, Scalar&> operator=(const T& value
+    enable_if_t<!is_base_of_v<Scalar, T>, Scalar&> operator=(const T& value
     )
     {
+        auto src_type = devices::type_info<remove_cv_t<T>>();
+
         if (p_type_and_content_type.is_null()) {
             construct_inplace(this, value);
         } else {
@@ -337,20 +373,20 @@ public:
                                 trivial_bytes,
                                 type_info(),
                                 &value,
-                                devices::type_info<remove_cv_t<T>>()
+                                src_type
                         )) {
-                        RPY_THROW(std::runtime_error, "assignment failed");
+                            throw ScalarConversionException(type_info(), src_type);
                     }
                     break;
                 case dtl::ScalarContentType::OpaquePointer:
-                case dtl::ScalarContentType ::OwnedPointer:
+                case dtl::ScalarContentType::OwnedPointer:
                     if (!dtl::scalar_convert_copy(
                                 opaque_pointer,
                                 type_info_from(p_type_and_content_type),
                                 &value,
-                                devices::type_info<remove_cv_t<T>>()
+                                src_type
                         )) {
-                        RPY_THROW(std::runtime_error, "assignment failed");
+                            throw ScalarConversionException(type_info_from(p_type_and_content_type), src_type);
                     }
                     break;
                 case dtl::ScalarContentType::ConstOpaquePointer:
@@ -361,7 +397,7 @@ public:
                 case dtl::ScalarContentType::Interface:
                 case dtl::ScalarContentType::OwnedInterface:
                     interface_ptr->set_value(
-                            Scalar(devices::type_info<remove_cv_t<T>>(), &value)
+                            Scalar(src_type, &value)
                     );
                     break;
             }

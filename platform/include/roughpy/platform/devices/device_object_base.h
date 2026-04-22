@@ -28,14 +28,16 @@
 #ifndef ROUGHPY_DEVICE_DEVICE_OBJECT_BASE_H_
 #define ROUGHPY_DEVICE_DEVICE_OBJECT_BASE_H_
 
-#include "core.h"
-
-#include <roughpy/core/macros.h>
-#include <roughpy/core/traits.h>
-#include <roughpy/core/types.h>
-
 #include <atomic>
 #include <memory>
+
+#include "roughpy/core/check.h"
+#include <roughpy/core/debug_assertion.h>
+#include <roughpy/core/macros.h>
+#include <roughpy/core/traits.hpp>
+#include <roughpy/core/types.hpp>
+
+#include "core.h"
 
 namespace rpy {
 namespace devices {
@@ -71,7 +73,7 @@ template <typename Interface>
 class RefCountBase : public Interface
 {
     static_assert(
-            is_base_of<InterfaceBase, Interface>::value,
+            is_base_of_v<InterfaceBase, Interface>,
             "Interface must be derived from InterfaceBase"
     );
 
@@ -91,7 +93,7 @@ template <typename Interface, typename Derived>
 class ObjectBase
 {
     static_assert(
-            is_base_of<InterfaceBase, Interface>::value,
+            is_base_of_v<InterfaceBase, Interface>,
             "Interface must be derived from InterfaceBase"
     );
 
